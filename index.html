@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>California Voting Centers — Butch Ware for Governor 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Nunito+Sans:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bw-green:#16683c;--bw-lemon:#f2e972;--bw-lav:#c7b7ff;
+  --bw-ivory:#f4eee7;--bw-black:#000;--bw-orange:#f96626;
+  --font-display:'Oswald',sans-serif;--font-body:'Nunito Sans',sans-serif;
+  --ev:#f2e972;--bt:#c7b7ff;--dr:#f4eee7;--h2:#f96626;
+  --ev-bg:rgba(242,233,114,.12);--bt-bg:rgba(199,183,255,.12);
+  --dr-bg:rgba(244,238,231,.08);--h2-bg:rgba(249,102,38,.12);
+  --chrome:134px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bw-black);color:var(--bw-ivory);font-family:var(--font-body);font-size:12px}
+
+#loading{position:fixed;inset:0;background:var(--bw-black);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:20px}
+#loading .logo{font-family:var(--font-display);font-weight:700;font-size:28px;text-transform:uppercase;color:var(--bw-lemon);letter-spacing:-.01em}
+#loading .sub{font-family:var(--font-body);font-weight:700;font-size:11px;color:#444;text-transform:uppercase;letter-spacing:.1em}
+.spinner{width:32px;height:32px;border:3px solid #222;border-top-color:var(--bw-green);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hd{height:52px;background:var(--bw-green);border-bottom:4px solid var(--bw-lemon);display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:12px;flex-shrink:0}
+.hd-left{display:flex;align-items:center}
+.logo-block{background:var(--bw-black);color:var(--bw-ivory);padding:0 12px;height:36px;display:flex;flex-direction:column;justify-content:center;border-right:3px solid var(--bw-lemon);flex-shrink:0}
+.logo-block .name{font-family:var(--font-display);font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:-.01em;line-height:1}
+.logo-block .sub-line{font-family:var(--font-body);font-weight:700;font-size:9px;color:var(--bw-lemon);text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
+.hd-title-block{padding:0 14px}
+.hd-title{font-family:var(--font-display);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:-.01em;color:var(--bw-lemon);line-height:1}
+.hd-sub{font-family:var(--font-body);font-weight:700;font-size:9px;color:rgba(242,233,114,.6);margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+.badge{background:var(--bw-lemon);color:var(--bw-black);padding:5px 12px;font-family:var(--font-display);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;flex-shrink:0;border-radius:0}
+
+.leg{height:34px;display:flex;background:var(--bw-black);border-bottom:3px solid var(--bw-green);flex-shrink:0;overflow:hidden}
+.li{display:flex;align-items:center;gap:7px;padding:0 14px;border-right:1px solid #1a1a1a;cursor:pointer;transition:background .12s;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-3px}
+.li:hover{background:#0d0d0d} .li.sel{background:#0a0a0a;border-bottom-color:var(--bw-lemon)}
+.dot{width:9px;height:9px;flex-shrink:0;border-radius:0}
+.leg-label{font-family:var(--font-display);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.leg-desc{color:#444;font-family:var(--font-body);font-size:9px;font-weight:700}
+
+.flt{height:34px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:2px solid #111;background:#080808;flex-shrink:0}
+.fl{color:#444;font-size:9px;letter-spacing:.07em;text-transform:uppercase;font-family:var(--font-display)}
+select,input{background:#0d0d0d;border:1px solid #222;color:var(--bw-ivory);padding:3px 8px;font-family:var(--font-body);font-size:10px;font-weight:700;outline:none;height:22px;border-radius:0}
+select:focus,input:focus{border-color:var(--bw-lemon)}
+input{width:190px}
+.vp-badge{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:9px;font-weight:700;color:#444;white-space:nowrap}
+.vp-badge b{color:var(--bw-lemon);font-size:10px;font-family:var(--font-display)}
+.vp-lock{font-size:9px;cursor:pointer;padding:2px 8px;border-radius:0;border:1px solid #333;color:#444;background:#0d0d0d;font-family:var(--font-display);text-transform:uppercase;letter-spacing:.05em;transition:all .12s}
+.vp-lock:hover{color:var(--bw-ivory);border-color:var(--bw-lemon)}
+.vp-lock.locked{color:var(--bw-black);background:var(--bw-lemon);border-color:var(--bw-lemon)}
+
+.sb{height:24px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:2px solid #0d0d0d;background:var(--bw-black);flex-shrink:0}
+.st{font-size:9px;color:#444;font-family:var(--font-body);font-weight:700} .st b{color:var(--bw-ivory);font-family:var(--font-display);font-size:9px}
+.st-div{width:3px;height:3px;background:#333}
+
+.split{display:flex;height:calc(100vh - var(--chrome))}
+#map{flex:0 0 44%;height:100%;z-index:1}
+.resizer{width:5px;background:var(--bw-green);cursor:col-resize;flex-shrink:0;transition:background .15s}
+.resizer:hover,.resizer.dragging{background:var(--bw-lemon)}
+.tpane{flex:1;overflow-y:auto;overflow-x:hidden}
+
+table{width:100%;border-collapse:collapse;font-size:10px}
+thead th{position:sticky;top:0;z-index:5;padding:6px 10px;text-align:left;font-family:var(--font-display);font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#444;background:var(--bw-black);border-bottom:3px solid var(--bw-green);cursor:pointer;white-space:nowrap;user-select:none}
+thead th:hover{color:var(--bw-lemon)}
+.sa{opacity:.3;margin-left:2px} th.srt .sa{opacity:1;color:var(--bw-lemon)}
+tbody tr{border-bottom:1px solid #0f0f0f;cursor:pointer;transition:background .08s}
+tbody tr:hover{background:#0a0a0a}
+tbody tr.hl{background:#0d1f14;border-left:4px solid var(--bw-lemon)!important;position:relative;z-index:1}
+td{padding:5px 10px;vertical-align:top;line-height:1.4}
+td.co{font-family:var(--font-display);font-size:9px;font-weight:700;text-transform:uppercase;color:#444;white-space:nowrap}
+td.nm{font-family:var(--font-display);font-weight:700;text-transform:uppercase;font-size:10px;color:var(--bw-ivory);max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.ad{color:#555;max-width:160px;font-size:9px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--font-body)}
+td.hr{color:#444;max-width:160px;font-size:9px;font-family:var(--font-body);font-weight:700}
+td.no{color:#444;font-size:9px;font-family:var(--font-body);font-weight:700;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{display:inline-block;padding:2px 7px;border-radius:0;font-family:var(--font-display);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.p-ev{background:var(--ev-bg);color:var(--ev);border:1px solid rgba(242,233,114,.2)}
+.p-bt{background:var(--bt-bg);color:var(--bt);border:1px solid rgba(199,183,255,.2)}
+.p-dr{background:var(--dr-bg);color:var(--dr);border:1px solid rgba(244,238,231,.15)}
+.p-h2{background:var(--h2-bg);color:var(--h2);border:1px solid rgba(249,102,38,.2)}
+.r-ev{border-left:3px solid var(--ev)!important} .r-bt{border-left:3px solid var(--bt)!important}
+.r-dr{border-left:3px solid var(--dr)!important} .r-h2{border-left:3px solid var(--h2)!important}
+.empty{text-align:center;padding:60px 20px;color:#333;font-family:var(--font-display);font-size:13px;text-transform:uppercase;letter-spacing:.1em}
+
+.leaflet-container{background:#000!important;font-family:var(--font-body)}
+.leaflet-popup-content-wrapper{background:#0d0d0d;border-top:3px solid var(--bw-green);border:1px solid #222;border-top:3px solid var(--bw-green);border-radius:0;color:var(--bw-ivory);box-shadow:0 4px 24px rgba(0,0,0,.8)}
+.leaflet-popup-tip-container{display:none}
+.leaflet-popup-content{margin:12px 14px;line-height:1.6}
+.pop-name{font-family:var(--font-display);font-weight:700;text-transform:uppercase;font-size:12px;color:var(--bw-lemon);display:block;margin-bottom:3px}
+.pop-addr{color:#666;font-size:10px;font-family:var(--font-body);font-weight:700}
+.pop-hrs{color:#555;font-size:10px;font-family:var(--font-body);font-weight:700;margin-top:7px;border-top:2px solid #1a1a1a;padding-top:7px}
+.leaflet-popup-close-button{color:#444!important}
+.leaflet-control-zoom a{background:#0d0d0d!important;color:var(--bw-ivory)!important;border-color:#222!important;border-radius:0!important}
+.leaflet-control-zoom a:hover{background:var(--bw-green)!important;color:var(--bw-lemon)!important}
+.marker-cluster div{font-family:var(--font-display);font-weight:700;font-size:11px;color:var(--bw-black)}
+.marker-cluster-small{background:rgba(242,233,114,.2)} .marker-cluster-small div{background:rgba(242,233,114,.85)}
+.marker-cluster-medium{background:rgba(242,233,114,.25)} .marker-cluster-medium div{background:rgba(242,233,114,.92)}
+.marker-cluster-large{background:rgba(242,233,114,.3)} .marker-cluster-large div{background:var(--bw-lemon)}
+
+.footer-strip{position:fixed;bottom:0;left:0;right:0;height:22px;z-index:999;background:var(--bw-green);border-top:2px solid var(--bw-lemon);display:flex;align-items:center;justify-content:center;gap:20px;font-family:var(--font-display);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--bw-lemon)}
+.footer-strip a{color:var(--bw-lemon);text-decoration:none;border-bottom:1px solid var(--bw-lemon)}
+.footer-strip a:hover{color:#fff}
+.footer-strip .cta{background:var(--bw-orange);color:var(--bw-black);padding:0 10px;height:22px;display:flex;align-items:center;font-weight:900;margin:-2px 0}
+.footer-strip .sep{opacity:.35}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="logo">BUTCH WARE <span style="color:var(--bw-ivory);font-size:18px">for Governor</span></div>
+  <div class="spinner"></div>
+  <div class="sub">Loading California Voting Centers…</div>
+</div>
+
+<div id="app" style="display:none;height:100%">
+  <div class="hd">
+    <div class="hd-left">
+      <div class="logo-block">
+        <div class="name">BUTCH WARE</div>
+        <div class="sub-line">for Governor 2026</div>
+      </div>
+      <div class="hd-title-block">
+        <div class="hd-title">California Voting Centers</div>
+        <div class="hd-sub">June 2, 2026 &middot; Primary Election &middot; CA Secretary of State</div>
+      </div>
+    </div>
+    <div class="badge" id="badge">— LOCATIONS</div>
+  </div>
+
+  <div class="leg">
+    <div class="li sel" data-t="all" onclick="setType('all')"><div class="dot" style="background:#333"></div><span class="leg-label" style="color:#555">ALL TYPES</span></div>
+    <div class="li" data-t="ev" onclick="setType('ev')"><div class="dot" style="background:var(--ev)"></div><span class="leg-label" style="color:var(--ev)">EARLY VOTING</span><span class="leg-desc">&nbsp;Vote in person. Same-day reg.</span></div>
+    <div class="li" data-t="bt" onclick="setType('bt')"><div class="dot" style="background:var(--bt)"></div><span class="leg-label" style="color:var(--bt)">VOTE + DROP OFF</span><span class="leg-desc">&nbsp;Full service location.</span></div>
+    <div class="li" data-t="dr" onclick="setType('dr')"><div class="dot" style="background:var(--dr)"></div><span class="leg-label" style="color:var(--dr)">DROP OFF ONLY</span><span class="leg-desc">&nbsp;Return mail ballot.</span></div>
+    <div class="li" data-t="h2" onclick="setType('h2')"><div class="dot" style="background:var(--h2)"></div><span class="leg-label" style="color:var(--h2)">24-HR DROP BOX</span><span class="leg-desc">&nbsp;Any hour through 8pm June 2.</span></div>
+  </div>
+
+  <div class="flt">
+    <span class="fl">County</span>
+    <select id="co" onchange="applyFilters()">
+      <option value="">All 58 Counties</option>
+      <option value="Alameda">Alameda</option>
+      <option value="Alpine">Alpine</option>
+      <option value="Amador">Amador</option>
+      <option value="Butte">Butte</option>
+      <option value="Calaveras">Calaveras</option>
+      <option value="Colusa">Colusa</option>
+      <option value="Contra Costa">Contra Costa</option>
+      <option value="Del Norte">Del Norte</option>
+      <option value="El Dorado">El Dorado</option>
+      <option value="Fresno">Fresno</option>
+      <option value="Glenn">Glenn</option>
+      <option value="Humboldt">Humboldt</option>
+      <option value="Imperial">Imperial</option>
+      <option value="Inyo">Inyo</option>
+      <option value="Kern">Kern</option>
+      <option value="Kings">Kings</option>
+      <option value="Lake">Lake</option>
+      <option value="Lassen">Lassen</option>
+      <option value="Los Angeles">Los Angeles</option>
+      <option value="Madera">Madera</option>
+      <option value="Marin">Marin</option>
+      <option value="Mariposa">Mariposa</option>
+      <option value="Mendocino">Mendocino</option>
+      <option value="Merced">Merced</option>
+      <option value="Modoc">Modoc</option>
+      <option value="Mono">Mono</option>
+      <option value="Monterey">Monterey</option>
+      <option value="Napa">Napa</option>
+      <option value="Nevada">Nevada</option>
+      <option value="Orange">Orange</option>
+      <option value="Placer">Placer</option>
+      <option value="Plumas">Plumas</option>
+      <option value="Riverside">Riverside</option>
+      <option value="Sacramento">Sacramento</option>
+      <option value="San Benito">San Benito</option>
+      <option value="San Bernardino">San Bernardino</option>
+      <option value="San Diego">San Diego</option>
+      <option value="San Francisco">San Francisco</option>
+      <option value="San Joaquin">San Joaquin</option>
+      <option value="San Luis Obispo">San Luis Obispo</option>
+      <option value="San Mateo">San Mateo</option>
+      <option value="Santa Barbara">Santa Barbara</option>
+      <option value="Santa Clara">Santa Clara</option>
+      <option value="Santa Cruz">Santa Cruz</option>
+      <option value="Shasta">Shasta</option>
+      <option value="Sierra">Sierra</option>
+      <option value="Siskiyou">Siskiyou</option>
+      <option value="Solano">Solano</option>
+      <option value="Sonoma">Sonoma</option>
+      <option value="Stanislaus">Stanislaus</option>
+      <option value="Sutter">Sutter</option>
+      <option value="Tehama">Tehama</option>
+      <option value="Trinity">Trinity</option>
+      <option value="Tulare">Tulare</option>
+      <option value="Tuolumne">Tuolumne</option>
+      <option value="Ventura">Ventura</option>
+      <option value="Yolo">Yolo</option>
+      <option value="Yuba">Yuba</option>
+    </select>
+    <span class="fl">Search</span>
+    <input id="q" type="text" placeholder="Name, address, city, zip&hellip;" oninput="applyFilters()">
+    <div class="vp-badge">
+      <span>Map view: <b id="vpCount">&mdash;</b></span>
+      <button class="vp-lock" id="vpLock" onclick="toggleLock()">UNLOCK</button>
+    </div>
+  </div>
+
+  <div class="sb" id="sb"></div>
+
+  <div class="split" id="split">
+    <div id="map"></div>
+    <div class="resizer" id="resizer"></div>
+    <div class="tpane">
+      <table id="tbl">
+        <thead><tr>
+          <th onclick="srt('co')" data-c="co">County<span class="sa">&#8597;</span></th>
+          <th onclick="srt('nm')" data-c="nm">Location<span class="sa">&#8597;</span></th>
+          <th onclick="srt('ad')" data-c="ad">Address<span class="sa">&#8597;</span></th>
+          <th onclick="srt('t')"  data-c="t">Type<span class="sa">&#8597;</span></th>
+          <th>Hours</th>
+          <th>Notes</th>
+        </tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+      <div class="empty" id="em" style="display:none">NO LOCATIONS IN CURRENT VIEW</div>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span class="cta">WRITE IN: BUTCH WARE</span>
+    <span>JUNE 2, 2026</span>
+    <span class="sep">|</span>
+    <a href="https://www.butchware4gov.com/write-in" target="_blank">butchware4gov.com/write-in</a>
+    <span class="sep">|</span>
+    <span style="color:rgba(242,233,114,.4);font-size:9px">Paid for by Butch Ware for Governor 2026</span>
+  </div>
+</div>
+
+<script>
+const TC={ev:'#f2e972',bt:'#c7b7ff',dr:'#f4eee7',h2:'#f96626'};
+const TL={ev:'Early Voting',bt:'Vote + Drop Off',dr:'Drop Off Only',h2:'24-Hr Drop Box'};
+const PC={ev:'p-ev',bt:'p-bt',dr:'p-dr',h2:'p-h2'};
+const RC={ev:'r-ev',bt:'r-bt',dr:'r-dr',h2:'r-h2'};
+let D=[],filtered=[],visible=[],tFlt='all',sCol='co',sDir=1,vpLocked=false;
+let leafMarkers=[],clusterGroup=null,map=null;
+
+function gt(r){if(r.h2)return'h2';if(r.ev&&r.do)return'bt';if(r.ev)return'ev';return'dr';}
+
+function initMap(){
+  map=L.map('map',{center:[37.5,-119.5],zoom:6,preferCanvas:true});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:19
+  }).addTo(map);
+  clusterGroup=L.markerClusterGroup({
+    chunkedLoading:true,maxClusterRadius:40,showCoverageOnHover:false,spiderfyOnMaxZoom:true,
+    iconCreateFunction(c){
+      const n=c.getChildCount(),sz=n<10?'small':n<100?'medium':'large';
+      return L.divIcon({html:'<div><span>'+n+'</span></div>',className:'marker-cluster marker-cluster-'+sz,iconSize:[40,40]});
+    }
+  });
+  map.addLayer(clusterGroup);
+  map.on('moveend zoomend',updateFromBounds);
+}
+
+function makeMarker(r){
+  const t=gt(r);
+  const m=L.circleMarker([r.la,r.ln],{radius:6,fillColor:TC[t],color:'#000',weight:1.5,opacity:1,fillOpacity:0.92});
+  const hrs=r.hr?r.hr.replace(/;/g,'<br>'):'See county registrar for hours';
+  m.bindPopup('<span class="pop-name">'+(r.nm||'Voting Center')+'</span><span class="pop-addr">'+r.ad+'</span><span class="pill '+PC[t]+'" style="margin-top:5px;display:inline-block">'+TL[t]+'</span><div class="pop-hrs">'+hrs+'</div>',{maxWidth:280});
+  m.on('click',()=>highlightRow(r));
+  return m;
+}
+
+function applyFilters(){
+  const co=document.getElementById('co').value;
+  const q=document.getElementById('q').value.toLowerCase().trim();
+  filtered=D.filter(r=>{
+    if(co&&r.co!==co)return false;
+    if(tFlt!=='all'&&gt(r)!==tFlt)return false;
+    if(q&&!(r.nm+r.ad+r.ci+r.zp+r.co).toLowerCase().includes(q))return false;
+    return true;
+  });
+  clusterGroup.clearLayers();
+  leafMarkers=filtered.map(r=>makeMarker(r));
+  clusterGroup.addLayers(leafMarkers);
+  const hasFilter=document.getElementById('co').value||document.getElementById('q').value.trim();
+  if(hasFilter&&leafMarkers.length){try{map.fitBounds(clusterGroup.getBounds().pad(0.15),{animate:false});}catch(e){}}
+  else{map.setView([37.5,-119.5],6,{animate:false});}
+  updateFromBounds();
+}
+
+function updateFromBounds(){
+  const bounds=map.getBounds();
+  visible=filtered.filter(r=>bounds.contains([r.la,r.ln]));
+  const display=visible.slice().sort((a,b)=>{
+    const va=sCol==='t'?gt(a):(a[sCol]||''),vb=sCol==='t'?gt(b):(b[sCol]||'');
+    return va<vb?-sDir:va>vb?sDir:0;
+  });
+  renderTable(display);renderStats(display);
+  document.getElementById('vpCount').textContent=visible.length.toLocaleString();
+  document.getElementById('badge').textContent=
+    visible.length<filtered.length
+      ?visible.length.toLocaleString()+' IN VIEW / '+filtered.length.toLocaleString()+' TOTAL'
+      :filtered.length.toLocaleString()+' LOCATIONS';
+}
+
+function renderTable(rows){
+  document.getElementById('tbl').style.display=rows.length?'':'none';
+  document.getElementById('em').style.display=rows.length?'none':'block';
+  document.getElementById('tb').innerHTML=rows.map(r=>{
+    const t=gt(r),no=r.no||(r.dh?r.dh:'&mdash;');
+    return'<tr class="'+RC[t]+'" data-la="'+r.la+'" data-ln="'+r.ln+'" onclick="rowClick(this)">'
+      +'<td class="co">'+r.co+'</td>'
+      +'<td class="nm">'+(r.nm||'&mdash;')+'</td>'
+      +'<td class="ad">'+r.ad+'</td>'
+      +'<td><span class="pill '+PC[t]+'">'+TL[t]+'</span></td>'
+      +'<td class="hr">'+(r.hr?r.hr.replace(/;/g,'<br>'):'&mdash;')+'</td>'
+      +'<td class="no">'+no+'</td></tr>';
+  }).join('');
+}
+
+function renderStats(rows){
+  const cts={};rows.forEach(r=>{const t=gt(r);cts[t]=(cts[t]||0)+1;});
+  document.getElementById('sb').innerHTML=
+    '<span class="st"><b>'+rows.length.toLocaleString()+'</b> IN VIEW</span><span class="st-div"></span>'+
+    (cts.ev?'<span class="st" style="color:var(--ev)">&#9642; <b>'+cts.ev+'</b> Early Voting</span>':'')+
+    (cts.bt?'<span class="st" style="color:var(--bt)">&#9642; <b>'+cts.bt+'</b> Vote+Drop</span>':'')+
+    (cts.dr?'<span class="st" style="color:var(--dr)">&#9642; <b>'+cts.dr+'</b> Drop Only</span>':'')+
+    (cts.h2?'<span class="st" style="color:var(--h2)">&#9642; <b>'+cts.h2+'</b> 24-Hr</span>':'');
+}
+
+function rowClick(tr){
+  const la=parseFloat(tr.dataset.la),ln=parseFloat(tr.dataset.ln);
+  map.setView([la,ln],15,{animate:true});
+  clusterGroup.eachLayer(m=>{
+    if(m.getLatLng&&Math.abs(m.getLatLng().lat-la)<0.00001&&Math.abs(m.getLatLng().lng-ln)<0.00001)
+      clusterGroup.zoomToShowLayer(m,()=>m.openPopup());
+  });
+  document.querySelectorAll('#tb tr').forEach(t=>t.classList.remove('hl'));
+  tr.classList.add('hl');
+}
+
+function highlightRow(r){
+  for(const tr of document.querySelectorAll('#tb tr')){
+    if(Math.abs(parseFloat(tr.dataset.la)-r.la)<0.00001){
+      document.querySelectorAll('#tb tr').forEach(t=>t.classList.remove('hl'));
+      tr.classList.add('hl');tr.scrollIntoView({behavior:'smooth',block:'nearest'});break;
+    }
+  }
+}
+
+function setType(t){
+  tFlt=t;
+  document.querySelectorAll('.li').forEach(el=>el.classList.toggle('sel',el.dataset.t===t));
+  applyFilters();
+}
+
+function srt(c){
+  if(sCol===c)sDir*=-1;else{sCol=c;sDir=1;}
+  document.querySelectorAll('th').forEach(t=>{t.classList.remove('srt');const s=t.querySelector('.sa');if(s)s.textContent='&#8597;';});
+  const th=document.querySelector('th[data-c="'+c+'"]');
+  if(th){th.classList.add('srt');th.querySelector('.sa').textContent=sDir===1?'&#8593;':'&#8595;';}
+  updateFromBounds();
+}
+
+function toggleLock(){
+  vpLocked=!vpLocked;
+  const btn=document.getElementById('vpLock');
+  btn.textContent=vpLocked?'LOCKED':'UNLOCK';
+  btn.classList.toggle('locked',vpLocked);
+}
+
+(()=>{
+  const resizer=document.getElementById('resizer'),split=document.getElementById('split'),mapEl=document.getElementById('map');
+  let drag=false,sx=0,sw=0;
+  resizer.addEventListener('mousedown',e=>{drag=true;sx=e.clientX;sw=mapEl.offsetWidth;resizer.classList.add('dragging');e.preventDefault();});
+  document.addEventListener('mousemove',e=>{if(!drag)return;const nw=Math.max(200,Math.min(sw+(e.clientX-sx),split.offsetWidth-300));mapEl.style.flex='0 0 '+nw+'px';if(map)map.invalidateSize();});
+  document.addEventListener('mouseup',()=>{drag=false;resizer.classList.remove('dragging');});
+})();
+
+fetch('./data.json')
+  .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+  .then(data=>{
+    D=data;
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='block';
+    initMap();
+    applyFilters();
+  })
+  .catch(err=>{
+    document.getElementById('loading').innerHTML=
+      '<div class="logo" style="color:var(--bw-orange)">LOAD ERROR</div>'+
+      '<div class="sub" style="color:#666">'+err.message+'</div>'+
+      '<div class="sub" style="color:#444;margin-top:8px">Make sure data.json is in the same folder as index.html</div>';
+  });
+</script>
+</body>
+</html>
